@@ -1,25 +1,12 @@
-class Event:
-    def __init__(self, identifier) -> None:
-        self.identifier = identifier
-        self.probability = 0
-        self.count = 0
+def feature_set_id(feature_set):
+    binary_identifier = ""
+    for f in feature_set:
+        binary_identifier += str(int(f))
 
-    def update_count(self, k):
-        self.count += k
+    return str(int(binary_identifier, 2))
 
-    def update_probability(self, n):
-        self.probability = self.count / n
-
-class Feature:
-    def __init__(self, identifier) -> None:
-        self.identifier = identifier
-        self.probability = 0
 
 class NaiveBayesModel:
-    def __init__(self) -> None:
-        self.events = []
-        self.features = []
-
 
     def train(self, data):
         # Data Structure
@@ -28,14 +15,39 @@ class NaiveBayesModel:
         #   features: []
         # }
 
-        nbm = self
+        self.feature_set_count = {}
+        self.event_count = {}
+        self.event_probs = {}
+        self.n_events = 0
+        self.n_feature_sets = 0
         for data_piece in data:
-            found_event = False
-            for event in nbm.events:
-                if event.identifier == data_piece['event']:
-                    event.update_count(1)
-                    found_event = True
-                    break
+            # Event ==================================================== 
+            self.n_events += 1
+            if data_piece['event'] not in self.event_count.keys():
+                self.event_count[data_piece['event']] = 1
+            else:
+                self.event_count[data_piece['event']] += 1
+            # End Event ==================================================== 
 
-            if not found_event:
-                nbm.events.append(Event(data_piece['event']))
+            # Feature Sets ==================================================== 
+            # Create a unique identifier from the feature set
+            # This means that duplicate feature sets will just increment
+            # the counter for that feature set
+            f_identifier = feature_set_id(data_piece['features'])
+            self.n_feature_sets += 1
+            if f_identifier not in self.feature_set_count.keys():
+                self.feature_set_count[f_identifier] = 1
+            else:
+                self.feature_set_count[f_identifier] += 1
+            # End Feature Sets ==================================================== 
+
+        for event in self.event_count.keys():
+            self.event_probs[event] = self.event_count[event] / self.n_events 
+
+        print(self.event_count)
+        print(self.event_probs)
+
+    def classify(self, features):
+        p_features = self.feature_set_count[feature_set_id(features)] / self.n_feature_sets
+
+

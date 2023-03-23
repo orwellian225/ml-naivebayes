@@ -75,13 +75,9 @@ def main():
 
     encoding_format = build_encoding_format(training_data)
     training_data = encode_data(encoding_format, training_data)
-    print(training_data)
 
     nbm = NaiveBayesModel()
-    # nbm.train(training_data)
-
-    print(nbm.events)
-
+    nbm.train(training_data)
 
 if __name__ == "__main__":
     main()
