@@ -1,5 +1,5 @@
 import numpy as np
-import random as rand
+from binary_nb import NaiveBayesModel
 
 def read_file(path):
     values = []
@@ -38,15 +38,49 @@ def select_test_data(data):
         test.append(data[i])
 
     return [training, test]
+
+def build_encoding_format(data):
+    encoding_format = np.array([])
+    for data_piece in data:
+        encoding_format = np.append(encoding_format, np.array(data_piece['words']))
+
+    encoding_format = np.unique(encoding_format, False)
+    return encoding_format
+    
+
+def encode_data(encoding_format, data):
+    encoded_data = []
+    for data_piece in data:
+        encoded_data.append({
+            'event': data_piece['result'],
+            'features': np.zeros(len(encoding_format))
+        })
         
+        for word in data_piece['words']:
+            if word in encoding_format:
+                index = np.where(encoding_format == word)
+                encoded_data[-1]['features'][index] = 1
+            else:
+                encoding_format.append(word)
+                encoded_data[-1]['features'][-1] = 1
+
+        # print(data_piece)
+        # print(encoded_data[-1])
+
+    return encoded_data
 
 def main():
     values = read_file('simple-food-reviews.txt')
     [training_data, test_data] = select_test_data(values)
 
+    encoding_format = build_encoding_format(training_data)
+    training_data = encode_data(encoding_format, training_data)
     print(training_data)
-    print("")
-    print(test_data)
+
+    nbm = NaiveBayesModel()
+    # nbm.train(training_data)
+
+    print(nbm.events)
 
 
 if __name__ == "__main__":
