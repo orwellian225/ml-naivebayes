@@ -52,20 +52,16 @@ def encode_data(encoding_format, data):
     encoded_data = []
     for data_piece in data:
         encoded_data.append({
-            'event': data_piece['result'],
-            'features': np.zeros(len(encoding_format))
+            'class': data_piece['result'],
+            'features': {}
         })
-        
+
+        for word in encoding_format:
+            encoded_data[-1]['features'][word] = 0
+
         for word in data_piece['words']:
             if word in encoding_format:
-                index = np.where(encoding_format == word)
-                encoded_data[-1]['features'][index] = 1
-            else:
-                encoding_format.append(word)
-                encoded_data[-1]['features'][-1] = 1
-
-        # print(data_piece)
-        # print(encoded_data[-1])
+                encoded_data[-1]['features'][word] = 1
 
     return encoded_data
 
@@ -75,9 +71,13 @@ def main():
 
     encoding_format = build_encoding_format(training_data)
     training_data = encode_data(encoding_format, training_data)
+    test_data = encode_data(encoding_format, test_data)
 
-    nbm = NaiveBayesModel()
-    nbm.train(training_data)
+    nbm_smooth = NaiveBayesModel()
+    nbm_smooth.train(training_data, True)
+    test_results = nbm_smooth.test_model(test_data)
+
+    print(test_results)
 
 if __name__ == "__main__":
     main()
