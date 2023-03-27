@@ -32,7 +32,7 @@ class BinaryNBModel:
 		results = []
 		for identifier in data.keys():
 			for features in data[identifier]:
-				classification = self.classify_features(features)
+				classification = self.classify_features_smoothed(features)
 				results.append({
 					'generated_class': classification['class'],
 					'probability': classification['probability'],
@@ -53,7 +53,6 @@ class BinaryNBModel:
 			for nbcI in self.classes:
 				product = 1
 				for j in range(len(features)):
-					# laplace smoothing goes here
 					product *= (nbcI.features[j][features[j]]) / (nbcI.count)
 				denominator += product * (nbcI.count / self.count)
 
@@ -74,7 +73,7 @@ class BinaryNBModel:
 
 		return max_class
 	
-	def classify_data_unsmoothed(self, data):
+	def classify_data_smoothed(self, data):
 
 		# Data format:
 		# [{
@@ -84,7 +83,7 @@ class BinaryNBModel:
 		results = []
 		for identifier in data.keys():
 			for features in data[identifier]:
-				classification = self.classify_features_unsmoothed(features)
+				classification = self.classify_features_smoothed(features)
 				results.append({
 					'generated_class': classification['class'],
 					'probability': classification['probability'],
@@ -106,7 +105,10 @@ class BinaryNBModel:
 				product = 1
 				for j in range(len(features)):
 					# laplace smoothing goes here
-					product *= (nbcI.features[j][features[j]]) / (nbcI.count)
+					current_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
+					if current_prob == 0:
+						current_prob = (nbcI.features[j][features[j]] + 1) / (nbcI.count + 2)
+					product *= current_prob
 				denominator += product * (nbcI.count / self.count)
 
 			product = 1
