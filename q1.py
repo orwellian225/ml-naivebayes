@@ -1,5 +1,5 @@
 import numpy as np
-from binary_nb import NaiveBayesModel
+from binary_nb import BinaryNBModel
 
 def read_file(path):
     values = []
@@ -20,7 +20,7 @@ def read_file(path):
                     'words': words
                 }
             )
-            
+
             line = file.readline()
 
     return values
@@ -46,24 +46,28 @@ def build_encoding_format(data):
 
     encoding_format = np.unique(encoding_format, False)
     return encoding_format
-    
+
 
 def encode_data(encoding_format, data):
     encoded_data = []
-    for data_piece in data:
-        encoded_data.append({
-            'class': data_piece['result'],
-            'features': {}
-        })
+    for i in range(len(data)):
+        encoded_data.append({ 'identifier': data[i]['result'], 'features': [] })
 
-        for word in encoding_format:
-            encoded_data[-1]['features'][word] = 0
-
-        for word in data_piece['words']:
+        for j in range(len(encoding_format)):
+            encoded_data[-1]['features'].append(0)
+        for word in data[i]['words']:
             if word in encoding_format:
-                encoded_data[-1]['features'][word] = 1
+                index = np.where(encoding_format == word)[0][0]
+                encoded_data[-1]['features'][index] = 1
 
-    return encoded_data
+    grouped_data = {}
+    for d in encoded_data:
+        if d['identifier'] in grouped_data.keys():
+            grouped_data[d['identifier']].append(d['features'])
+        else:
+            grouped_data[d['identifier']] = [d['features']]
+
+    return grouped_data
 
 def main():
     values = read_file('simple-food-reviews.txt')
@@ -73,11 +77,13 @@ def main():
     training_data = encode_data(encoding_format, training_data)
     test_data = encode_data(encoding_format, test_data)
 
-    nbm_smooth = NaiveBayesModel()
-    nbm_smooth.train(training_data, True)
-    test_results = nbm_smooth.test_model(test_data)
-
-    print(test_results)
+    nbm = BinaryNBModel()
+    nbm.train_model(training_data)
+    test_results = nbm.classify_data_unsmoothed(test_data)
+    print(nbm.to_string())
+    
+    for test_result in test_results:
+        print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
 
 if __name__ == "__main__":
     main()

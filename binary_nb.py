@@ -1,118 +1,148 @@
-class NBClass:
-    def __init__(self, id):
-        self.id = id
-        self.count = 1 # a class will only be initialized when it is found, therefore for a class to exist there must be at least one
-        self.feature_count = {}
-        self.prob = 0
-        self.feature_prob = {}
+class BNBClass:
+	def __init__(self, identifier, count):
+		self.identifier = identifier
+		self.count = count
+		self.features = []
 
-    def inc_count(self, num):
-        self.count += num
+class BinaryNBModel:
+	def __init__(self) -> None:
+		self.classes = []
+		self.count = 0
 
-    def inc_feature_count(self, feature_id, num):
-        if feature_id not in self.feature_count.keys():
-            self.feature_count[feature_id] = num
-        else:
-            self.feature_count[feature_id] += num
+	def to_string(self):
+		result = f"n = {self.count}\n"
 
-    def calc_prob(self, n_events, smoothing_enabled):
-        self.prob = self.count / n_events
-        for feature in self.feature_count.keys():
-            self.feature_prob[feature] = [0, 0]
+		for nbclass in self.classes:
+			result += f"\tn({nbclass.identifier}) = {nbclass.count}\n"
+			for j in range(len(nbclass.features)):
+				result += f"\t\tFeature {j}: "
+				for type in nbclass.features[j]:
+					result += f"n({nbclass.features[j].index(type)}) = {type} "
+				result += "\n"
 
-            self.feature_prob[feature][1] = self.feature_count[feature] / self.count
-            self.feature_prob[feature][0] = 1 - self.feature_prob[feature][1]
+		return result
 
-            # if smoothing_enabled and self.feature_prob[feature][1] == 1:
-            #     self.feature_prob[feature][1] = (self.feature_count[feature] + 1) / (self.count + 2 * 1)
-            #     self.feature_prob[feature][0] = 1 - self.feature_prob[feature][1]
+	def classify_data_unsmoothed(self, data):
 
-    def to_string_count(self):
-        return f"{self.id} -> count: {self.count}, feature_counts: {self.feature_count}"
+		# Data format:
+		# [{
+		#	'class_identifier': []
+		# }, ...]
 
-    def to_string_prob(self):
-        return f"{self.id} -> prob: {self.prob}, feature_counts: {self.feature_prob}"
+		results = []
+		for identifier in data.keys():
+			for features in data[identifier]:
+				classification = self.classify_features(features)
+				results.append({
+					'generated_class': classification['class'],
+					'probability': classification['probability'],
+					'actual_class': identifier,
+					'features': data[identifier]
+				})
+		return results
 
-class NaiveBayesModel:
+	def classify_features_unsmoothed(self, features):
+		results = []
+		for nbclass in self.classes:
+			results.append({
+				'class': nbclass.identifier,
+				'probability': 0
+			})
 
-    def print_prob(self):
-        for nbclass in self.classes.keys():
-            print(self.classes[nbclass].to_string_prob())
+			denominator = 0
+			for nbcI in self.classes:
+				product = 1
+				for j in range(len(features)):
+					# laplace smoothing goes here
+					product *= (nbcI.features[j][features[j]]) / (nbcI.count)
+				denominator += product * (nbcI.count / self.count)
 
-    def print_count(self):
-        for nbclass in self.classes.keys():
-            print(self.classes[nbclass].to_string_count())
+			product = 1
+			for j in range(len(features)):
+				product *= (nbclass.features[j][features[j]]) / (nbclass.count)
+			numerator = product * (nbclass.count / self.count)
 
-    def train(self, data, smoothing_enabled):
-        # Data Structure
-        # {
-        #   class: 0,
-        #   features: {
-        #     'feature_id': 0, 
-        #     'feature_id': 0, 
-        #       ...
-        #   }
-        # }
+			results[-1]['probability'] = numerator / denominator if denominator != 0 else 0.0 
 
-        self.classes = {}
-        self.n_events = len(data)
-        for data_piece in data:
-            current_class = data_piece['class']
-            # Event ==================================================== 
-            if current_class not in self.classes.keys():
-                self.classes[current_class] = NBClass(current_class)
-            else:
-                self.classes[data_piece['class']].inc_count(1)
-            # End Event ==================================================== 
+		max_class = {
+			'class': '',
+			'probability': -100
+		}
+		for result in results:
+			if result['probability'] > max_class['probability']:
+				max_class = result
 
-            # Feature ==================================================== 
-            features = data_piece['features']
-            for feature in features.keys():
-                self.classes[current_class].inc_feature_count(feature, features[feature])
-                # features[feature] will add 1 to count if it has a value of 1, else it will not increment the count
-            # End Feature ==================================================== 
-            self.classes[current_class].calc_prob(self.n_events, smoothing_enabled)
+		return max_class
+	
+	def classify_data_unsmoothed(self, data):
 
+		# Data format:
+		# [{
+		#	'class_identifier': []
+		# }, ...]
 
-    def classify(self, features):
-        results = {}
-        for nbclass in self.classes.keys():
-            results[nbclass] = 0
+		results = []
+		for identifier in data.keys():
+			for features in data[identifier]:
+				classification = self.classify_features_unsmoothed(features)
+				results.append({
+					'generated_class': classification['class'],
+					'probability': classification['probability'],
+					'actual_class': identifier,
+					'features': data[identifier]
+				})
+		return results
 
-            numerator = 1
-            denominator = 0
+	def classify_features_smoothed(self, features):
+		results = []
+		for nbclass in self.classes:
+			results.append({
+				'class': nbclass.identifier,
+				'probability': 0
+			})
 
-            for feature in features.keys():
-                numerator *= self.classes[nbclass].feature_prob[feature][features[feature]]
+			denominator = 0
+			for nbcI in self.classes:
+				product = 1
+				for j in range(len(features)):
+					# laplace smoothing goes here
+					product *= (nbcI.features[j][features[j]]) / (nbcI.count)
+				denominator += product * (nbcI.count / self.count)
 
-                product = 1
-                for second_nbclass in self.classes.keys():
-                    product *= self.classes[second_nbclass].prob * self.classes[second_nbclass].feature_prob[feature][features[feature]]
-                denominator += product
+			product = 1
+			for j in range(len(features)):
+				product *= (nbclass.features[j][features[j]]) / (nbclass.count)
+			numerator = product * (nbclass.count / self.count)
 
-            numerator *= self.classes[nbclass].prob
-            results[nbclass] = numerator / denominator
+			results[-1]['probability'] = numerator / denominator if denominator != 0 else 0.0 
 
-        max = {
-            'class': '',
-            'confidence': -1
-        }
+		max_class = {
+			'class': '',
+			'probability': -100
+		}
+		for result in results:
+			if result['probability'] > max_class['probability']:
+				max_class = result
 
-        print(results)
-        for nbclass in results.keys():
-            if results[nbclass] > max['confidence']:
-                max['class'] = nbclass
-                max['confidence'] = results[nbclass]
+		return max_class
 
-        return max
-            
+	def train_model(self, data):
 
+		# Data format:
+		# [{
+		#	'class_identifier': [[...]]
+		# }]
+		for key in data.keys():
+			# Construct Class data
+			self.count += len(data[key])
+			self.classes.append(BNBClass(identifier=key, count=len(data[key])))
 
-    def test_model(self, test_data):
-        result = ""
-        for data in test_data:
-            classification = self.classify(data['features'])
-            result += f"actual class: {data['class']}, guessed class: {classification['class']}, confidence: {classification['confidence']}\n"
-
-        return result
-
+			# Construct Feature given Class data
+			current_class = self.classes[-1]
+			for features in data[key]:
+				for j in range(len(features)):
+					try:
+						current_class.features[j][features[j]] += 1
+					except IndexError:
+						current_class.features.append([0,0])
+						current_class.features[-1][features[j]] += 1
