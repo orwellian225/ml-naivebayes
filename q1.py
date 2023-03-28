@@ -77,7 +77,7 @@ def main():
     training_data = encode_data(encoding_format, training_data)
     test_data = encode_data(encoding_format, test_data)
 
-    BinaryNBModel.execute(training_data, test_data, print_results=True)
+    BinaryNBModel.execute(training_data, test_data, print_correctness=True)
 
 if __name__ == "__main__":
     main()

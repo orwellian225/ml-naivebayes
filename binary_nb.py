@@ -9,7 +9,7 @@ class BinaryNBModel:
 		self.classes = []
 		self.count = 0
 
-	def execute(training_data, test_data, print_model=False, print_confusion=False, print_results=False):
+	def execute(training_data, test_data, print_model=False, print_confusion=False, print_results=False, print_correctness=False):
 		nbm = BinaryNBModel()
 		nbm.train_model(training_data)
 		test_results_unsmoothed = nbm.classify_data(test_data, 0)
@@ -19,12 +19,14 @@ class BinaryNBModel:
 
 		print("\nUnsmoothed")
 		if print_confusion: print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed), "\n")
+		if print_correctness: print("Correct %: ", BinaryNBModel.generate_correctness(test_results_unsmoothed), "\n")
 		if print_results:
 			for test_result in test_results_unsmoothed:
 				print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
 
 		print("\nSmoothed")
 		if print_confusion: print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed), "\n")
+		if print_correctness: print("Correct %: ", BinaryNBModel.generate_correctness(test_results_smoothed), "\n")
 		if print_results:
 			for test_result in test_results_smoothed:
 				print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
@@ -41,6 +43,18 @@ class BinaryNBModel:
 				result += "\n"
 
 		return result
+	
+	def generate_correctness(result_data):
+		n_results = 0
+		n_correct_results = 0
+
+		for result in result_data:
+			n_results += 1
+
+			if result['actual_class'] == result['generated_class']:
+				n_correct_results += 1
+
+		return n_correct_results / n_results
 
 	def generate_confusion_matrix(result_data):
 		matrix = {}
@@ -90,7 +104,12 @@ class BinaryNBModel:
 				for j in range(len(features)):
 					# laplace smoothing goes here
 					alpha = smoothing_constant
-					product *= 	(nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features[j]))
+					feature_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
+
+					if j >= len(nbcI.features) or feature_prob == 0.0:
+						feature_prob = (nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features))
+
+					product *= 	feature_prob
 					
 				denominator += product * (nbcI.count / self.count)
 
@@ -99,7 +118,7 @@ class BinaryNBModel:
 				product *= (nbclass.features[j][features[j]]) / (nbclass.count)
 			numerator = product * (nbclass.count / self.count)
 
-			results[-1]['probability'] = numerator / denominator if denominator != 0 else 0.0 
+			results[-1]['probability'] = numerator / denominator if denominator != 0.0 else 0.0
 
 		max_class = {
 			'class': '',
