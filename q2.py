@@ -69,7 +69,7 @@ def main():
     [training_data, test_data] = select_test_data(data)
     training_data = format_data(training_data)
     test_data = format_data(test_data)
-    BinaryNBModel.execute(training_data, test_data)
+    BinaryNBModel.execute(training_data, test_data, print_confusion=True)
 
 if __name__ == "__main__":
     main()

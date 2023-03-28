@@ -9,26 +9,25 @@ class BinaryNBModel:
 		self.classes = []
 		self.count = 0
 
-	def execute(training_data, test_data):
+	def execute(training_data, test_data, print_model=False, print_confusion=False, print_results=False):
 		nbm = BinaryNBModel()
 		nbm.train_model(training_data)
 		test_results_unsmoothed = nbm.classify_data(test_data, 0)
 		test_results_smoothed = nbm.classify_data(test_data, 1)
 
-		print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed))
-		print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed))
-
-		#print(nbm.to_string())  
+		if print_model: print(nbm.to_string())  
 
 		print("\nUnsmoothed")
-		print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed), "\n")
-		#for test_result in test_results_unsmoothed:
-		#    print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
+		if print_confusion: print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed), "\n")
+		if print_results:
+			for test_result in test_results_unsmoothed:
+				print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
 
 		print("\nSmoothed")
-		print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed), "\n")
-		#for test_result in test_results_smoothed:
-		#    print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
+		if print_confusion: print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed), "\n")
+		if print_results:
+			for test_result in test_results_smoothed:
+				print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
 
 	def to_string(self):
 		result = f"n = {self.count}\n"
@@ -91,11 +90,8 @@ class BinaryNBModel:
 				for j in range(len(features)):
 					# laplace smoothing goes here
 					alpha = smoothing_constant
-
-					current_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
-					if current_prob == 0:
-						current_prob = (nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features[j]))
-					product *= current_prob
+					product *= 	(nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features[j]))
+					
 				denominator += product * (nbcI.count / self.count)
 
 			product = 1
