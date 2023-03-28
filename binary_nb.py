@@ -92,6 +92,7 @@ class BinaryNBModel:
 
 	def classify_features(self, features, smoothing_constant):
 		results = []
+		alpha = smoothing_constant
 		for nbclass in self.classes:
 			results.append({
 				'class': nbclass.identifier,
@@ -103,10 +104,10 @@ class BinaryNBModel:
 				product = 1
 				for j in range(len(features)):
 					# laplace smoothing goes here
-					alpha = smoothing_constant
+					
 					feature_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
 
-					if j >= len(nbcI.features) or feature_prob == 0.0:
+					if j >= len(nbcI.features) or feature_prob == 0.0: # If the feature has never been seen befre
 						feature_prob = (nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features))
 
 					product *= 	feature_prob
@@ -115,7 +116,12 @@ class BinaryNBModel:
 
 			product = 1
 			for j in range(len(features)):
-				product *= (nbclass.features[j][features[j]]) / (nbclass.count)
+				feature_prob = (nbclass.features[j][features[j]]) / (nbclass.count)
+
+				if j >= len(nbclass.features) or feature_prob == 0.0: # If the feature has never been seen before both at all or for this class
+						feature_prob = (nbclass.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features))
+
+				product *= feature_prob
 			numerator = product * (nbclass.count / self.count)
 
 			results[-1]['probability'] = numerator / denominator if denominator != 0.0 else 0.0
