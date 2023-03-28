@@ -69,20 +69,7 @@ def main():
     [training_data, test_data] = select_test_data(data)
     training_data = format_data(training_data)
     test_data = format_data(test_data)
-
-    nbm = BinaryNBModel()
-    nbm.train_model(training_data)
-    test_results_unsmoothed = nbm.classify_data_unsmoothed(test_data)
-    test_results_smoothed = nbm.classify_data_smoothed(test_data)
-    print(nbm.to_string())
-
-    print("\nUnsmoothed")
-    for test_result in test_results_unsmoothed[:10]:
-        print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
-
-    print("\nSmoothed")
-    for test_result in test_results_smoothed[:10]:
-        print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
+    BinaryNBModel.execute(training_data, test_data)
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,27 @@ class BinaryNBModel:
 		self.classes = []
 		self.count = 0
 
+	def execute(training_data, test_data):
+		nbm = BinaryNBModel()
+		nbm.train_model(training_data)
+		test_results_unsmoothed = nbm.classify_data(test_data, 0)
+		test_results_smoothed = nbm.classify_data(test_data, 1)
+
+		print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed))
+		print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed))
+
+		#print(nbm.to_string())  
+
+		print("\nUnsmoothed")
+		print(BinaryNBModel.generate_confusion_matrix(test_results_unsmoothed), "\n")
+		#for test_result in test_results_unsmoothed:
+		#    print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
+
+		print("\nSmoothed")
+		print(BinaryNBModel.generate_confusion_matrix(test_results_smoothed), "\n")
+		#for test_result in test_results_smoothed:
+		#    print(f"actual class = {test_result['actual_class']}, generated class = {test_result['generated_class']}, probability = {test_result['probability']}")
+
 	def to_string(self):
 		result = f"n = {self.count}\n"
 
@@ -22,7 +43,22 @@ class BinaryNBModel:
 
 		return result
 
-	def classify_data_unsmoothed(self, data):
+	def generate_confusion_matrix(result_data):
+		matrix = {}
+
+		for result in result_data:
+			if result['actual_class'] in matrix.keys():
+				if result['generated_class'] in matrix[result['actual_class']].keys():
+					matrix[result['actual_class']][result['generated_class']] += 1
+				else:
+					matrix[result['actual_class']][result['generated_class']] = 1
+			else:
+				matrix[result['actual_class']] = {}
+				matrix[result['actual_class']][result['generated_class']] = 1
+
+		return matrix
+
+	def classify_data(self, data, smoothing_constant):
 
 		# Data format:
 		# [{
@@ -32,7 +68,7 @@ class BinaryNBModel:
 		results = []
 		for identifier in data.keys():
 			for features in data[identifier]:
-				classification = self.classify_features_smoothed(features)
+				classification = self.classify_features(features, smoothing_constant)
 				results.append({
 					'generated_class': classification['class'],
 					'probability': classification['probability'],
@@ -41,58 +77,7 @@ class BinaryNBModel:
 				})
 		return results
 
-	def classify_features_unsmoothed(self, features):
-		results = []
-		for nbclass in self.classes:
-			results.append({
-				'class': nbclass.identifier,
-				'probability': 0
-			})
-
-			denominator = 0
-			for nbcI in self.classes:
-				product = 1
-				for j in range(len(features)):
-					product *= (nbcI.features[j][features[j]]) / (nbcI.count)
-				denominator += product * (nbcI.count / self.count)
-
-			product = 1
-			for j in range(len(features)):
-				product *= (nbclass.features[j][features[j]]) / (nbclass.count)
-			numerator = product * (nbclass.count / self.count)
-
-			results[-1]['probability'] = numerator / denominator if denominator != 0 else 0.0 
-
-		max_class = {
-			'class': '',
-			'probability': -100
-		}
-		for result in results:
-			if result['probability'] > max_class['probability']:
-				max_class = result
-
-		return max_class
-	
-	def classify_data_smoothed(self, data):
-
-		# Data format:
-		# [{
-		#	'class_identifier': []
-		# }, ...]
-
-		results = []
-		for identifier in data.keys():
-			for features in data[identifier]:
-				classification = self.classify_features_smoothed(features)
-				results.append({
-					'generated_class': classification['class'],
-					'probability': classification['probability'],
-					'actual_class': identifier,
-					'features': data[identifier]
-				})
-		return results
-
-	def classify_features_smoothed(self, features):
+	def classify_features(self, features, smoothing_constant):
 		results = []
 		for nbclass in self.classes:
 			results.append({
@@ -105,9 +90,11 @@ class BinaryNBModel:
 				product = 1
 				for j in range(len(features)):
 					# laplace smoothing goes here
+					alpha = smoothing_constant
+
 					current_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
 					if current_prob == 0:
-						current_prob = (nbcI.features[j][features[j]] + 1) / (nbcI.count + len(self.classes))
+						current_prob = (nbcI.features[j][features[j]] + alpha) / (nbcI.count + alpha * len(nbcI.features[j]))
 					product *= current_prob
 				denominator += product * (nbcI.count / self.count)
 
