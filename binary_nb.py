@@ -107,7 +107,7 @@ class BinaryNBModel:
 					# laplace smoothing goes here
 					current_prob = (nbcI.features[j][features[j]]) / (nbcI.count)
 					if current_prob == 0:
-						current_prob = (nbcI.features[j][features[j]] + 1) / (nbcI.count + 2)
+						current_prob = (nbcI.features[j][features[j]] + 1) / (nbcI.count + len(self.classes))
 					product *= current_prob
 				denominator += product * (nbcI.count / self.count)
 
